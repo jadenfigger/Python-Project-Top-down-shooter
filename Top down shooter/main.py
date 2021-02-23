@@ -15,30 +15,25 @@ class Player:
 
 		self.isIdle = True
 
-		self.sprites = {"idle": [None] * 4, "up": [None] * 8, "down": [None] * 8, "right": [None] * 8, "left": [None] * 8}
-		self.walkingSpriteSheet = pygame.image.load("Characters/BODY_male_walking.png")
+		self.sprites = {"up": [None] * 4, "up-right": [None] * 4, "right": [None] * 4, "right-down": [None] * 4, 
+					    "down": [None] * 4, "down-left": [None] * 4, "left": [None] * 4, "top-left": [None] * 4}
+		self.spritePaths = ["Character_Up.png", "Character_UpRight.png", "Character_Right.png", "Character_DownRight.png"
+							"Character_Down.png", "Character_DownLeft.png", "Character_Left.png", "Character_UpLeft.png"]
 		self.currentSprite = None
 
 	def createSprites(self):
-		# x: 16 y: 14, x: 49 y: 63  xWidth = 33 yHeight = 49  yBuffer = 15
-		for i in range(4):
-			self.sprites["idle"][i] = self.walkingSpriteSheet.subsurface((16, 14 + (i * 64), 33, 49))
-		self.playerWidHei = pygame.math.Vector2(self.sprites["idle"][i].get_size())
-		self.currentSprite = self.sprites["idle"][2]
+		for i in range(len(self.spritePaths)):
+			self.spritePaths[i] = pygame.image.load("Characters/" + self.spritePaths[i])
+
+		print(self.spritePaths)
+		# for key in self.sprites:
+		# 	self.sprites[key][i] = self.walkingSpriteSheet.subsurface((16, 14 + (i * 64), 33, 49))
+		# self.playerWidHei = pygame.math.Vector2(self.sprites["idle"][i].get_size())
+		# self.currentSprite = self.sprites["idle"][2]
 
 
 	def drawPlayer(self, surface):
-		print(self.direction)
-		'''if (self.direction == (0, -self.moveSpeed)):
-			self.currentSprite = self.sprites["idle"][0]
-		elif (self.direction == (-self.moveSpeed, 0)):
-			self.currentSprite = self.sprites["idle"][1]
-		elif (self.direction == (0, self.moveSpeed)):
-			self.currentSprite = self.sprites["idle"][2]
-		elif (self.direction == (self.moveSpeed, 0)):
-			self.currentSprite = self.sprites["idle"][3]'''
-		
-		if self.direction.x < 0:
+    	if self.direction.x < 0:
 			self.currentSprite = self.sprites['idle'][1]
 		elif self.direction.x > 0:
 			self.currentSprite = self.sprites['idle'][3]
@@ -127,10 +122,10 @@ class GameController:
 		while self.running:
 			self.eventLoop()
 
-			self.player.move()
+			# self.player.move()
 
 			self.ground.drawGround(self.screen)
-			self.player.drawPlayer(self.screen)
+			# self.player.drawPlayer(self.screen)
 
 			pygame.display.update()
 			self.clock.tick(GAME_FPS)			
