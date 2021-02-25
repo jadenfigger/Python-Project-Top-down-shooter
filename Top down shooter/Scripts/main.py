@@ -15,7 +15,7 @@ class Player:
 		self.pos = pygame.math.Vector2(WIDTH/2, HEIGHT/2)
 
 		self.rollSpeed = 4
-		self.moveSpeed = 3
+		self.moveSpeed = 2
 
 		self.isIdle = True
 		self.isRolling = False
@@ -29,7 +29,11 @@ class Player:
 		self.rollingSpritePaths = ["Character_RollUp.png", "Character_RollUpRight.png", "Character_RollRight.png", "Character_RollDownRight.png",
 								   "Character_RollDown.png", "Character_RollDownLeft.png", "Character_RollLeft.png", "Character_RollUpLeft.png"]	
 		self.currentSprite = None
+		self.facing = None
 		self.animationFrame = 0
+		self.animationDelayCount = 0
+		self.framesBetweenRolls = 60
+		self.startOfRoll = -self.framesBetweenRolls
 
 	def createSprites(self):
 		for i in range(len(self.walkingSpritePaths)):
@@ -46,69 +50,90 @@ class Player:
 			count += 1
 
 		self.currentSprite = self.walkingSprites['up'][0]
+		self.facing = "up"
+
 
 	def drawPlayer(self, surface):
 		if (self.direction.x < 0 and self.direction.y < 0):
-			self.drawAnimation("up-left")
+			self.facing = "up-left"
 		elif (self.direction.x < 0 and self.direction.y > 0):
-			self.drawAnimation("down-left")
+			self.facing = "down-left"
 		elif (self.direction.x > 0 and self.direction.y < 0):
-			self.drawAnimation("up-right")
+			self.facing = "up-right"
 		elif (self.direction.x > 0 and self.direction.y > 0):
-			self.drawAnimation("down-right")
+			self.facing = "down-right"
 		elif (self.direction.x < 0 and self.direction.y == 0):
-			self.drawAnimation("left")
+			self.facing = "left"
 		elif (self.direction.x > 0 and self.direction.y == 0):
-			self.drawAnimation("right")
+			self.facing = "right"
 		elif (self.direction.x == 0 and self.direction.y < 0):
-			self.drawAnimation("up")
+			self.facing = "up"
 		elif (self.direction.x == 0 and self.direction.y > 0):
-			self.drawAnimation("down")
+			self.facing = "down"
 
+		self.drawAnimation()
 		surface.blit(self.currentSprite, (self.pos.x, self.pos.y, self.playerWidHei.x, self.playerWidHei.y))
 
 
-	def drawAnimation(self, facing):
-		print(self.isRolling)
+	def drawAnimation(self):
 		if (not self.isRolling):
 			if (self.isIdle):
-					self.currentSprite = self.walkingSprites[facing][0]
-					self.animationFrame = 0
+				self.animationFrame = 0
+				self.currentSprite = self.walkingSprites[self.facing][self.animationFrame]
 			else:
-				if (frameCount % 4 == 0):
+				if (self.animationDelayCount % 10 == 0):
 					self.animationFrame += 1
 
-				if (self.animationFrame >= len(self.walkingSprites[facing])): 
+				if (self.animationFrame >= len(self.walkingSprites[self.facing])): 
 					self.animationFrame = 0
 
-				self.currentSprite = self.walkingSprites[facing][self.animationFrame]
+				self.currentSprite = self.walkingSprites[self.facing][self.animationFrame]
+				self.animationDelayCount += 1
 		else:
-			if (self.animationFrame >= len(self.walkingSprites[facing])): 
+			if (self.startOfRoll == frameCount):
 				self.animationFrame = 0
 
-			self.currentSprite = self.rollingSprites[facing][self.animationFrame]
+			if (self.animationFrame >= len(self.walkingSprites[self.facing])): 
+				self.isRolling = False
+				self.animationFrame = 0
+
+			self.currentSprite = self.rollingSprites[self.facing][self.animationFrame]
+			self.animationDelayCount += 1
+			
+			if (self.animationDelayCount % 5 == 0):
+				self.animationFrame += 1
+
 
 	def move(self): 
 		keys = pygame.key.get_pressed()
 		initialPosition = pygame.math.Vector2(self.pos.x, self.pos.y)
 		move = pygame.math.Vector2(0, 0)
 
-		if (keys[119]):
-			move.y = -1 * self.moveSpeed
-		elif (keys[115]):
-			move.y = 1 * self.moveSpeed
-		if (keys[97]):
-			move.x = -1 * self.moveSpeed
-		elif (keys[100]):
-			move.x = 1 * self.moveSpeed
+		x = 0
+		y = 0
 
-		if (keys[32]):
-			self.isRolling = True
-		else:
-			self.isRolling = False
+		if (keys[119]):
+			y = -1
+		elif (keys[115]):
+			y = 1
+		if (keys[97]):
+			x = -1
+		elif (keys[100]):
+			x = 1
 
 		if (move.x != 0 and move.y != 0):
-			move *= 0.707106
+			x *= 0.707106
+			y *= 0.706106
+
+		if (keys[32] and (x != 0 or y != 0) and self.isRolling == False and frameCount > self.startOfRoll + self.framesBetweenRolls):
+			self.isRolling = True
+			self.animationDelayCount = 0
+			self.startOfRoll = frameCount
+
+		if (self.isRolling):
+			move = pygame.math.Vector2(x * self.rollSpeed, y * self.rollSpeed)
+		else:
+			move = pygame.math.Vector2(x * self.moveSpeed, y * self.moveSpeed)
 
 		self.pos += move
 		if (self.pos.y != initialPosition.y):
@@ -125,6 +150,8 @@ class Player:
 		if (self.pos == initialPosition):
 			self.isIdle = True
 		else:
+			if (not self.isRolling):
+				self.animationDelayCount = 0
 			self.isIdle = False
 
 
