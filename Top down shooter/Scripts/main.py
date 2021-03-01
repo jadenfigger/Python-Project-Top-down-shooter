@@ -1,6 +1,7 @@
 import sys
 import os
 import levels
+import enemies
 import pygame
 
 WIDTH, HEIGHT = SCREEN_SIZE = (1024, 640)
@@ -47,8 +48,8 @@ class Player:
         self.facingAttack = None
         self.animationFrame = 0
         self.animationDelayCount = 0
-        self.framesBetweenRolls = 60
-        self.framesBetweenAttacks = 10
+        self.framesBetweenRolls = 45
+        self.framesBetweenAttacks = 25
         self.startOfAttack = -self.framesBetweenAttacks
         self.startOfRoll = -self.framesBetweenRolls
 
@@ -248,6 +249,14 @@ class Ground:
                 surface.blit(self.tiles[self.groundGrid[row][col]], (
                     int(col * self.size), int(row * self.size), self.size, self.size))
 
+    def createMatrix(self):
+        matrix = []
+        for i in range(len(self.groundGrid)):
+            matrix.append([])
+            for j in range(len(self.groundGrid[i])):
+                matrix[i].append(1)
+
+        return matrix
 
 class GameController:
     def __init__(self):
@@ -257,24 +266,68 @@ class GameController:
 
         self.keys = None
 
+        self.meleeEnemies = []
+        self.bowedEnemies = []
+
+        self.meleeEnemySprites = {"walk-up": [], "walk-left": [], "walk-down": [], "walk-right": [],
+                                  "attack-up": [], "attack-left]": [], "attack-down": [], "attack-right": [],
+                                  "dying": []}
+        self.bowedEnemySprites = {"walk-up": [], "walk-left": [], "walk-down": [], "walk-right": [],
+                                  "attack-up": [], "attack-left]": [], "attack-down": [], "attack-right": [],
+                                  "dying": []}
+        self.enemyWidHei = (30, 41)
+
         self.ground = Ground()
         self.player = Player()
+
+        self.matrix = self.ground.createMatrix()
 
     def eventLoop(self):
         self.keys = pygame.key.get_pressed()
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 self.running = False
-
+ 
     def displayFPS(self):
         caption = f"{self.clock.get_fps():.2f}"
         pygame.display.set_caption(caption)
+
+    def createEnemySprites(self):
+        meleeSpriteSheet = pygame.image.load("Characters/Enemies/MeleeThief.png")
+        bowedSpriteSheet = pygame.image.load("Characters/Enemies/MeleeSkeleton.png")
+
+        count = 0
+        for direction in self.meleeEnemySprites:
+            count = list(self.meleeEnemySprites.keys()).index(direction)
+            # Walking
+            if (count < 4):
+                for i in range(9):
+                    self.meleeEnemySprites[direction].append(pygame.transform.scale(meleeSpriteSheet.subsurface((64 * i + 13, 525 + (count * 64), 36, 50)), self.enemyWidHei))
+                    self.bowedEnemySprites[direction].append(pygame.transform.scale(bowedSpriteSheet.subsurface((64 * i + 13, 525 + (count * 64), 36, 50)), self.enemyWidHei))
+            # Attacking
+            elif (count < 8):
+                for i in range(13):
+                    self.meleeEnemySprites[direction].append(pygame.transform.scale(meleeSpriteSheet.subsurface((64 * i + 13, 1038 + ((count-4)* 64), 36, 50)), self.enemyWidHei))
+                    self.bowedEnemySprites[direction].append(pygame.transform.scale(bowedSpriteSheet.subsurface((64 * i + 13, 1038 + ((count-4) * 64), 36, 50)), self.enemyWidHei))   
+            # Dying
+            elif (count == 9):
+                for i in range(6):
+                    self.meleeEnemySprites[direction].append(pygame.transform.scale(meleeSpriteSheet.subsurface((64 * i + 13, 1292, 36, 50)), self.enemyWidHei))
+                    self.bowedEnemySprites[direction].append(pygame.transform.scale(bowedSpriteSheet.subsurface((64 * i + 13, 1292, 36, 50)), self.enemyWidHei))
+
+
+    def spawnEnemies(self):
+        for i in range(1):
+            self.meleeEnemies.append(enemies.MeleeEnemy(pygame.math.Vector2(16, 16)))
 
     def mainLoop(self):
         global frameCount
 
         self.ground.createSprites()
         self.player.createSprites()
+        self.createEnemySprites()
+
+        self.spawnEnemies()
 
         while self.running:
             self.eventLoop()
@@ -282,6 +335,10 @@ class GameController:
             self.player.playerInput(self.keys)
 
             self.ground.drawGround(self.screen)
+            for i in range(len(self.meleeEnemies)):
+                self.meleeEnemies[i].moveToTarget(self.player.pos, self.matrix, self.ground.size)
+                self.meleeEnemies[i].drawEnemy(self.screen, self.meleeEnemySprites)
+
             self.player.drawPlayer(self.screen)
 
             pygame.display.update()
