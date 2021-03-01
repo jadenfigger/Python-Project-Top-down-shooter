@@ -122,6 +122,10 @@ level# = [
 _levelList = [level0, level1]
 
 
+def getSize():
+    return len(_levelList)
+
+
 def getLevel(i):
     return _levelList[i]
 
