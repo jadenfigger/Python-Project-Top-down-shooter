@@ -1,4 +1,4 @@
-# TODO handle module stuff
+# module for levels
 
 _dt = 'dirt'
 _gs = 'grass'
@@ -129,4 +129,7 @@ def getSize():
 def getLevel(i):
     return _levelList[i]
 
-# w32 h20
+
+if __name__ == "__main__":
+    print('testing\n')
+    print(_levelList)
