@@ -3,6 +3,7 @@ import os
 import levels
 import enemies
 import pygame
+from math import floor, atan2, pi, degrees
 
 WIDTH, HEIGHT = SCREEN_SIZE = (1024, 640)
 GAME_FPS = 60
@@ -22,34 +23,48 @@ class Player:
         self.rollSpeed = 4
         self.moveSpeed = 2
 
+        self.maxHealth = 20
+        self.currentHealth = self.maxHealth
+        self.attackDamage = 5
+        self.attackingDistance = 70
+
+        self.attackRange = {"up-right": [270, 90], "down-right": [270, 90],
+                            "down-left": [90, 270], "up-left": [90, 270]}
+
+        self.dealDamage = False
         self.isIdle = True
         self.isRolling = False
         self.isAttacking = False
 
-        self.swordTranslations = {"up-right": [-3, -6], "down-right": [7, 2], "down-left": [4, 7], "up-left": [-7, 4]}
+        self.swordTranslations = {"up-right": [-24-48, 7-69], "down-right": [-36-48, 5-69],
+                                  "down-left": [-24-48, 3-69], "up-left": [-15-48, 6-69]}
 
         self.walkingSprites = {"up": [], "up-right": [], "right": [], "down-right": [],
                                "down": [], "down-left": [], "left": [], "up-left": []}
-        self.walkingSpritePaths = ["Character_Up.png", "Character_UpRight.png", "Character_Right.png", "Character_DownRight.png",
-                                   "Character_Down.png", "Character_DownLeft.png", "Character_Left.png", "Character_UpLeft.png"]
+        self.walkingSpritePaths = ["Character_Up.png", "Character_UpRight.png", "Character_Right.png",
+                                   "Character_DownRight.png",
+                                   "Character_Down.png", "Character_DownLeft.png", "Character_Left.png",
+                                   "Character_UpLeft.png"]
         self.rollingSprites = {"up": [], "up-right": [], "right": [], "down-right": [],
                                "down": [], "down-left": [], "left": [], "up-left": []}
-        self.rollingSpritePaths = ["Character_RollUp.png", "Character_RollUpRight.png", "Character_RollRight.png", "Character_RollDownRight.png",
-                                   "Character_RollDown.png", "Character_RollDownLeft.png", "Character_RollLeft.png", "Character_RollUpLeft.png"]
+        self.rollingSpritePaths = ["Character_RollUp.png", "Character_RollUpRight.png", "Character_RollRight.png",
+                                   "Character_RollDownRight.png",
+                                   "Character_RollDown.png", "Character_RollDownLeft.png", "Character_RollLeft.png",
+                                   "Character_RollUpLeft.png"]
         self.attackingSprites = {"up-right": [], "down-right": [], "down-left": [], "up-left": []}
-        self.attackingSpritePaths = ["Character_SlashUpRight.png", "Character_SlashDownRight.png", 
+        self.attackingSpritePaths = ["Character_SlashUpRight.png", "Character_SlashDownRight.png",
                                      "Character_SlashDownLeft.png", "Character_SlashUpLeft.png"]
         self.swordSprites = {"up-right": [], "down-right": [], "down-left": [], "up-left": []}
         self.swordSpritePaths = ["Sword_UpRight.png", "Sword_DownRight.png", "Sword_DownLeft.png", "Sword_UpLeft.png"]
-        
+
         self.currentSprite = None
         self.swordSprite = None
-        self.facing = None
-        self.facingAttack = None
+        self.facing = "up"
+        self.facingAttack = "up-right"
         self.animationFrame = 0
         self.animationDelayCount = 0
-        self.framesBetweenRolls = 45
-        self.framesBetweenAttacks = 25
+        self.framesBetweenRolls = 60
+        self.framesBetweenAttacks = 10
         self.startOfAttack = -self.framesBetweenAttacks
         self.startOfRoll = -self.framesBetweenRolls
 
@@ -61,16 +76,11 @@ class Player:
         count = 0
         for direction in self.walkingSprites:
             for i in range(4):
-                self.walkingSprites[direction].append(
-                    pygame.transform.scale(self.walkingSpritePaths[count].subsurface((i * 32, 0, 32, 32)), (48, 48)))
-                self.rollingSprites[direction].append(
-                    pygame.transform.scale(self.rollingSpritePaths[count].subsurface((i * 32, 0, 32, 32)), (48, 48)))
-
-            self.playerWidHei = pygame.math.Vector2(self.walkingSprites["up"][0].get_size())
+                self.walkingSprites[direction].append(pygame.transform.scale(self.walkingSpritePaths[count].subsurface(
+                    (8 + i * 32, 6, 16, 22)), (48, 66)))
+                self.rollingSprites[direction].append(pygame.transform.scale(self.rollingSpritePaths[count].subsurface(
+                    (8 + i * 32, 6, 17, 22)), (51, 66)))
             count += 1
-
-        self.currentSprite = self.walkingSprites['up'][0]
-        self.facing = "up"
 
         for i in range(len(self.attackingSpritePaths)):
             self.attackingSpritePaths[i] = pygame.image.load("Characters/" + self.attackingSpritePaths[i])
@@ -79,44 +89,55 @@ class Player:
         count = 0
         for direction in self.attackingSprites:
             for i in range(5):
-                self.attackingSprites[direction].append(pygame.transform.scale(self.attackingSpritePaths[count].subsurface((i * 32, 0, 32, 32)), (48, 48)))
-                self.swordSprites[direction].append(pygame.transform.scale(self.swordSpritePaths[count].subsurface((i * 64, 0, 64, 64)), (48, 48)))
+                self.attackingSprites[direction].append(pygame.transform.scale(
+                    self.attackingSpritePaths[count].subsurface((8 + i * 32, 5, 17, 23)), (51, 69)))
+                self.swordSprites[direction].append(pygame.transform.scale(
+                    self.swordSpritePaths[count].subsurface((i * 64, 0, 64, 64)), (192, 192)))
             count += 1
 
+        self.facing = "up"
+        self.currentSprite = self.walkingSprites[self.facing]
+        self.playerWidHei = pygame.math.Vector2(self.currentSprite[self.animationFrame].get_size())
+
     def drawPlayer(self, surface):
-        if (self.isRolling):
-            if (self.startOfRoll == frameCount):
+        if self.isRolling:
+            if self.startOfRoll == frameCount:
                 self.animationFrame = 0
 
-            if (self.animationFrame >= len(self.walkingSprites[self.facing])):
+            if self.animationFrame >= len(self.walkingSprites[self.facing]):
                 self.isRolling = False
                 self.animationFrame = 0
 
             self.currentSprite = self.rollingSprites[self.facing][self.animationFrame]
             self.animationDelayCount += 1
 
-            if (self.animationDelayCount % 5 == 0):
-                self.animationFrame += 1         
-        elif (self.isAttacking and not self.isRolling):
-            if (self.startOfAttack == frameCount):
+            if self.animationDelayCount % 5 == 0:
+                self.animationFrame += 1
+        elif self.isAttacking and not self.isRolling:
+            if self.startOfAttack == frameCount:
                 self.animationFrame = 0
 
-            if (self.animationDelayCount % 6 == 0 and self.startOfAttack != frameCount):
+            if self.animationDelayCount % 6 == 0 and self.startOfAttack != frameCount:
                 self.animationFrame += 1
 
-            if (self.animationFrame >= len(self.attackingSprites[self.facingAttack])):
+            if self.animationFrame >= len(self.attackingSprites[self.facingAttack]):
                 self.isAttacking = False
                 self.animationFrame = 0
                 return
 
+            if (self.animationFrame == 3):
+                self.dealDamage = True
+            else:
+                self.dealDamage = False
+
             self.currentSprite = self.attackingSprites[self.facingAttack][self.animationFrame]
             self.swordSprite = self.swordSprites[self.facingAttack][self.animationFrame]
             self.animationDelayCount += 1
-        elif ((not self.isIdle) and (not self.isAttacking) and (not self.isRolling)):
-            if (self.animationDelayCount % 5 == 0):
+        elif (not self.isIdle) and (not self.isAttacking) and (not self.isRolling):
+            if self.animationDelayCount % 5 == 0:
                 self.animationFrame += 1
 
-            if (self.animationFrame >= len(self.walkingSprites[self.facing])):
+            if self.animationFrame >= len(self.walkingSprites[self.facing]):
                 self.animationFrame = 0
 
             self.currentSprite = self.walkingSprites[self.facing][self.animationFrame]
@@ -126,19 +147,16 @@ class Player:
             self.currentSprite = self.walkingSprites[self.facing][self.animationFrame]
 
         surface.blit(self.currentSprite, (self.pos.x, self.pos.y, self.playerWidHei.x, self.playerWidHei.y))
-        if (self.isAttacking and not self.isRolling and self.swordSprite != None):
+        if self.isAttacking and not self.isRolling and self.swordSprite is not None:
             surface.blit(self.swordSprite, (int(self.pos.x + self.swordTranslations[self.facingAttack][0]),
-            int(self.pos.y + self.swordTranslations[self.facingAttack][1]), self.playerWidHei.x, self.playerWidHei.y))
+                                            int(self.pos.y + self.swordTranslations[self.facingAttack][1]),
+                                            self.playerWidHei.x, self.playerWidHei.y))
 
-        # print("------------------")
-        # y = 0
-        # for direction in self.attackingSprites:
-        #     for i in range(5):
-        #         surface.blit(self.attackingSprites[direction][i], (64 * i, y, self.playerWidHei.x, self.playerWidHei.y))
-        #         surface.blit(self.swordSprites[direction][i], (64 * i-7, y+4, self.playerWidHei.x, self.playerWidHei.y))
-        #     y += 64
-
-
+        sHeathBarBack = pygame.Surface((int(self.playerWidHei.x), 10))
+        sHeathBarBack.set_alpha(100)
+        sHeathBarBack.fill((0, 0, 0))
+        surface.blit(sHeathBarBack, (self.pos.x, self.pos.y - 10))
+        pygame.draw.rect(surface, (255, 0, 0), (self.pos.x, self.pos.y-10, int((48 * self.currentHealth/self.maxHealth)), 10))
 
     def playerInput(self, keys):
         x = 0
@@ -153,12 +171,13 @@ class Player:
         elif keys[100]:
             x = 1
 
-        if (keys[32] and (x != 0 or y != 0) and not self.isRolling and frameCount > self.startOfRoll + self.framesBetweenRolls and not self.isAttacking):
+        if (keys[32] and (x != 0 or y != 0) and not self.isRolling and
+                frameCount > self.startOfRoll + self.framesBetweenRolls and not self.isAttacking):
             self.isRolling = True
             self.animationDelayCount = 0
             self.startOfRoll = frameCount
 
-        if (keys[106] and not self.isRolling):
+        if keys[106] and not self.isRolling:
             self.isAttacking = True
             self.animationDelayCount = 0
             self.startOfAttack = frameCount
@@ -167,16 +186,13 @@ class Player:
 
         self.determineFacing()
 
-
     def move(self, x, y):
         initialPosition = pygame.math.Vector2(self.pos.x, self.pos.y)
-        move = pygame.math.Vector2(0, 0)
 
-        if (self.isAttacking):
+        if self.isAttacking:
             x = 0
             y = 0
-
-        if x != 0 and y != 0:
+ 
             x *= 0.707106
             y *= 0.706106
 
@@ -200,7 +216,6 @@ class Player:
             self.isIdle = True
         else:
             self.isIdle = False
-
 
     def determineFacing(self):
         if self.direction.x < 0 and self.direction.y < 0:
@@ -227,7 +242,6 @@ class Player:
         elif self.direction.x == 0 and self.direction.y > 0:
             self.facing = "down"
             self.facingAttack = "down-right"
-
 
 class Ground:
     def __init__(self):
@@ -258,6 +272,13 @@ class Ground:
 
         return matrix
 
+    def set_groundGrid(self, level):
+        if (level >= 0) and (level < levels.getSize()):
+            self.groundGrid = levels.getLevel(level)
+            return True
+        else:
+            return False
+
 class GameController:
     def __init__(self):
         self.running = True
@@ -266,21 +287,15 @@ class GameController:
 
         self.keys = None
 
-        self.meleeEnemies = []
-        self.bowedEnemies = []
-
-        self.meleeEnemySprites = {"walk-up": [], "walk-left": [], "walk-down": [], "walk-right": [],
-                                  "attack-up": [], "attack-left]": [], "attack-down": [], "attack-right": [],
-                                  "dying": []}
-        self.bowedEnemySprites = {"walk-up": [], "walk-left": [], "walk-down": [], "walk-right": [],
-                                  "attack-up": [], "attack-left]": [], "attack-down": [], "attack-right": [],
-                                  "dying": []}
-        self.enemyWidHei = (30, 41)
+        self.skeletonMeleeEnemies = []
 
         self.ground = Ground()
         self.player = Player()
+        self.enemy = enemies.Enemy()
 
         self.matrix = self.ground.createMatrix()
+
+        self.Level = 0
 
     def eventLoop(self):
         self.keys = pygame.key.get_pressed()
@@ -292,40 +307,34 @@ class GameController:
         caption = f"{self.clock.get_fps():.2f}"
         pygame.display.set_caption(caption)
 
-    def createEnemySprites(self):
-        meleeSpriteSheet = pygame.image.load("Characters/Enemies/MeleeThief.png")
-        bowedSpriteSheet = pygame.image.load("Characters/Enemies/MeleeSkeleton.png")
-
-        count = 0
-        for direction in self.meleeEnemySprites:
-            count = list(self.meleeEnemySprites.keys()).index(direction)
-            # Walking
-            if (count < 4):
-                for i in range(9):
-                    self.meleeEnemySprites[direction].append(pygame.transform.scale(meleeSpriteSheet.subsurface((64 * i + 13, 525 + (count * 64), 36, 50)), self.enemyWidHei))
-                    self.bowedEnemySprites[direction].append(pygame.transform.scale(bowedSpriteSheet.subsurface((64 * i + 13, 525 + (count * 64), 36, 50)), self.enemyWidHei))
-            # Attacking
-            elif (count < 8):
-                for i in range(13):
-                    self.meleeEnemySprites[direction].append(pygame.transform.scale(meleeSpriteSheet.subsurface((64 * i + 13, 1038 + ((count-4)* 64), 36, 50)), self.enemyWidHei))
-                    self.bowedEnemySprites[direction].append(pygame.transform.scale(bowedSpriteSheet.subsurface((64 * i + 13, 1038 + ((count-4) * 64), 36, 50)), self.enemyWidHei))   
-            # Dying
-            elif (count == 9):
-                for i in range(6):
-                    self.meleeEnemySprites[direction].append(pygame.transform.scale(meleeSpriteSheet.subsurface((64 * i + 13, 1292, 36, 50)), self.enemyWidHei))
-                    self.bowedEnemySprites[direction].append(pygame.transform.scale(bowedSpriteSheet.subsurface((64 * i + 13, 1292, 36, 50)), self.enemyWidHei))
-
-
+    
     def spawnEnemies(self):
-        for i in range(1):
-            self.meleeEnemies.append(enemies.MeleeEnemy(pygame.math.Vector2(16, 16)))
+        # for i in range(1):
+        self.skeletonMeleeEnemies.append(enemies.MeleeSkeletonEnemy(pygame.math.Vector2(16, 16)))
+        # self.skeletonMeleeEnemies.append(enemies.MeleeSkeletonEnemy(pygame.math.Vector2(16, 624)))
+        # self.skeletonMeleeEnemies.append(enemies.MeleeSkeletonEnemy(pygame.math.Vector2(1008, 16)))
+        # self.skeletonMeleeEnemies.append(enemies.MeleeSkeletonEnemy(pygame.math.Vector2(1008, 624)))
+
+    def checkLevel(self):
+        if self.player.pos.y >= HEIGHT:
+            self.Level += 1
+            if self.ground.set_groundGrid(self.Level):
+                self.player.pos = pygame.math.Vector2(self.player.pos.x, -self.player.playerWidHei.y / 2)
+            else:
+                self.Level -= 1
+        elif self.player.pos.y < -self.player.playerWidHei.y:
+            self.Level -= 1
+            if self.ground.set_groundGrid(self.Level):
+                self.player.pos = pygame.math.Vector2(self.player.pos.x, HEIGHT - self.player.playerWidHei.y / 2)
+            else:
+                self.Level += 1
+
 
     def mainLoop(self):
         global frameCount
 
         self.ground.createSprites()
         self.player.createSprites()
-        self.createEnemySprites()
 
         self.spawnEnemies()
 
@@ -333,13 +342,43 @@ class GameController:
             self.eventLoop()
 
             self.player.playerInput(self.keys)
+            self.checkLevel()
 
             self.ground.drawGround(self.screen)
-            for i in range(len(self.meleeEnemies)):
-                self.meleeEnemies[i].moveToTarget(self.player.pos, self.matrix, self.ground.size)
-                self.meleeEnemies[i].drawEnemy(self.screen, self.meleeEnemySprites)
+            
+            toBeDeleted = []
+
+            for i in range(len(self.skeletonMeleeEnemies)):
+                if (self.skeletonMeleeEnemies[i].currentHealth <= 0):
+                   toBeDeleted.append(i)
+
+                self.skeletonMeleeEnemies[i].moveToTarget(self.player.pos, self.matrix, self.ground.size)
+                self.skeletonMeleeEnemies[i].drawEnemy(self.screen, self.player.pos)
+
+                if (self.skeletonMeleeEnemies[i].dealDamage):
+                    self.player.currentHealth -= self.skeletonMeleeEnemies[i].attackDamage
+
+            for i in toBeDeleted:
+                del self.skeletonMeleeEnemieds[i]
+
+
+            # if (len(self.skeletonMeleeEnemies)):
+            #     self.running = False
 
             self.player.drawPlayer(self.screen)
+
+            if (self.player.dealDamage):
+                dx = float(self.skeletonMeleeEnemies[i].pos.x - self.player.pos.x)
+                dy = float(self.skeletonMeleeEnemies[i].pos.y - self.player.pos.y)
+                rads = atan2(-dy, dx)
+                rads %= 2*pi
+                deg = degrees(rads)
+
+                for i in range(len(self.skeletonMeleeEnemies)):
+                    print(deg, self.player.attackRange[self.player.facingAttack])
+                    if (self.player.pos.distance_to(self.skeletonMeleeEnemies[i].pos) < self.player.attackingDistance and 
+                        (self.player.attackRange[self.player.facingAttack][0] <= deg <= self.player.attackRange[self.player.facingAttack][1])):
+                        self.skeletonMeleeEnemies[i].currentHealth -= self.player.attackDamage
 
             pygame.display.update()
             self.clock.tick(GAME_FPS)
