@@ -196,11 +196,11 @@ class MeleeSkeletonEnemy(Enemy):
 			self.currentSprite = self.skeletonEnemySprites["walk-"+self.facing][self.animationFrame]
 
 		surface.blit(self.currentSprite, (self.pos.x, self.pos.y, self.currentSprite.get_rect().x, self.currentSprite.get_rect().y))
-		        if (self.isAttacking):
-            surface.blit(self.currentAttackSprite, (
-                self.pos.x - (self.currentAttackSprite.get_size()[0] / 3) - 6,
-                self.pos.y - (self.currentAttackSprite.get_size()[1] / 3) - 3,
-                self.currentAttackSprite.get_rect().x, self.currentAttackSprite.get_rect().y))
+		if (self.isAttacking):
+			surface.blit(self.currentAttackSprite, (
+				self.pos.x - (self.currentAttackSprite.get_size()[0] / 3) - 6,
+				self.pos.y - (self.currentAttackSprite.get_size()[1] / 3) - 3,
+				self.currentAttackSprite.get_rect().x, self.currentAttackSprite.get_rect().y))
 
 		sHeathBarBack = pygame.Surface((int(self.enemyWidHei[0]), 10))
 		sHeathBarBack.set_alpha(100)
@@ -222,10 +222,5 @@ class MeleeSkeletonEnemy(Enemy):
 		# 		surface.blit(self.longswordSprites["sword-"+d][i], ((16 + (64 * i)) - 30, (32 + (64 * count) - 30)))
 
 		# 	count += 1
-
-
-
-
-
 
 
