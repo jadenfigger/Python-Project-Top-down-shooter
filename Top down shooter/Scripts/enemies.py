@@ -18,7 +18,7 @@ class Enemy:
 
 		self.maxHealth = 100
 		self.currentHealth = self.maxHealth
-		self.attackDamage = 5
+		self.attackDamage = 6
 
 		self.moveSpeed = 2
 		self.movingTo = None
@@ -92,8 +92,6 @@ class Enemy:
 			self.animationDelayFrame = 0
 			self.animationFrame = 0
 		else:
-			# self.animationDelayFrame = 0
-			# self.animationFrame = 0
 			self.isAttacking = False
 			self.isIdle = False
 			self.atNeighboringTile = False
@@ -101,8 +99,8 @@ class Enemy:
 
 	def moveToTarget(self, targetPos, matrix, tileSize):
 		if (self.atNeighboringTile):
-			dx = float(self.pos.x + self.enemyWidHei[0]/2) - targetPos.x
-			dy = float(self.pos.y + self.enemyWidHei[1]/2) - (targetPos.y)
+			dx = float(self.pos.x) - targetPos.x
+			dy = float(self.pos.y) - (targetPos.y)
 			rads = atan2(-dy, dx)
 			rads %= 2*pi
 
@@ -139,8 +137,6 @@ class Enemy:
 			self.movingTo = None
 			self.isIdle = True
 		else:
-			# self.animationDelayFrame = 0
-			# self.animationFrame = 0
 			self.isAttacking = False
 			self.isIdle = False
 
@@ -173,7 +169,7 @@ class MeleeSkeletonEnemy(Enemy):
 			if (self.animationFrame >= len(self.skeletonEnemySprites["attack-"+self.facing])):
 				self.animationFrame = 0
 
-			if (self.animationFrame == 4 and self.attackDelay + self.startOfDelay > frameCount):
+			if (self.animationFrame == 4 and frameCount > self.startOfDelay + self.attackDelay or self.startOfDelay == -60):
 				self.startOfDelay = frameCount
 				self.dealDamage = True
 			else:
@@ -201,25 +197,10 @@ class MeleeSkeletonEnemy(Enemy):
 				self.pos.x - (self.currentAttackSprite.get_size()[0] / 3) - 6,
 				self.pos.y - (self.currentAttackSprite.get_size()[1] / 3) - 3,
 				self.currentAttackSprite.get_rect().x, self.currentAttackSprite.get_rect().y))
+		
 
 		sHeathBarBack = pygame.Surface((int(self.enemyWidHei[0]), 10))
 		sHeathBarBack.set_alpha(100)
 		sHeathBarBack.fill((0, 0, 0))
 		surface.blit(sHeathBarBack, (self.pos.x, self.pos.y - 10))
 		pygame.draw.rect(surface, (255, 0, 0), (self.pos.x, self.pos.y-10, int((48 * self.currentHealth/self.maxHealth)), 10))
-
-
-		# swordTranslations = {"up": [-86, 80], "left": [7, 2], "down": [4, 7], "right": [-7, 4]}
-		# surface.blit(self.skeletonEnemySprites["attack-up"][5], (48, 48))
-		# surface.blit(self.longswordSprites["sword-up"][5], (48+swordTranslations["up"][0], 48+swordTranslations["up"][1]))
-		# print((48+swordTranslations["up"][0], 48+swordTranslations["up"][1]))
-		# directions = ["up", "left", "down", "right"]
-		# count = 0
-		# for d in directions:
-		# 	for i in range(6):
-		# 		surface.blit(self.skeletonEnemySprites["attack-"+d][i], (16 + (64 * i), 32 + (64 * count), 
-		# 					 self.skeletonEnemySprites["attack-"+d][i].get_rect().x, self.skeletonEnemySprites["attack-"+d][i].get_rect().y))
-		# 		surface.blit(self.longswordSprites["sword-"+d][i], ((16 + (64 * i)) - 30, (32 + (64 * count) - 30)))
-
-		# 	count += 1
-

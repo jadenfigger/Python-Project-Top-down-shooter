@@ -3,6 +3,7 @@ import os
 import levels
 import enemies
 import pygame
+import random
 from math import floor, atan2, pi, degrees
 
 WIDTH, HEIGHT = SCREEN_SIZE = (1024, 640)
@@ -23,7 +24,7 @@ class Player:
         self.rollSpeed = 4
         self.moveSpeed = 2
 
-        self.maxHealth = 20
+        self.maxHealth = 40 
         self.currentHealth = self.maxHealth
         self.attackDamage = 5
         self.attackingDistance = 70
@@ -202,6 +203,8 @@ class Player:
             move = pygame.math.Vector2(x * self.moveSpeed, y * self.moveSpeed)
 
         self.pos += move
+
+
         if self.pos.y != initialPosition.y:
             self.direction.y = self.pos.y - initialPosition.y
         else:
@@ -295,7 +298,15 @@ class GameController:
 
         self.matrix = self.ground.createMatrix()
 
+        self.enemySpawnPositions = [(16, 16), (16, 176), (16, 304), (16, 496), (16, 624), (176, 16), (304, 16), (496, 16), (624, 16),
+                                    (176, 624), (304, 624), (496, 624), (624, 624)]
+
         self.Level = 0
+
+        self.levelsSpawnDetails = [3, 5]
+        self.spawnedEnemies = 0
+        self.spawnEnemyOnFrame = None
+
 
     def eventLoop(self):
         self.keys = pygame.key.get_pressed()
@@ -308,16 +319,21 @@ class GameController:
         pygame.display.set_caption(caption)
 
     
-    def spawnEnemies(self):
-        # for i in range(1):
-        self.skeletonMeleeEnemies.append(enemies.MeleeSkeletonEnemy(pygame.math.Vector2(16, 16)))
-        # self.skeletonMeleeEnemies.append(enemies.MeleeSkeletonEnemy(pygame.math.Vector2(16, 624)))
-        # self.skeletonMeleeEnemies.append(enemies.MeleeSkeletonEnemy(pygame.math.Vector2(1008, 16)))
-        # self.skeletonMeleeEnemies.append(enemies.MeleeSkeletonEnemy(pygame.math.Vector2(1008, 624)))
+    def spawnEnemy(self):
+        self.skeletonMeleeEnemies.append(enemies.MeleeSkeletonEnemy(
+        pygame.math.Vector2(self.enemySpawnPositions[random.randint(0, len(self.enemySpawnPositions)) - 1])))
+        self.spawnedEnemies += 1
+
+
 
     def checkLevel(self):
+        if (self.player.pos.y > HEIGHT - self.player.playerWidHei[1] and len(self.skeletonMeleeEnemies) != 0):
+            self.player.pos.y -= self.player.moveSpeed
+            return
+
         if self.player.pos.y >= HEIGHT:
             self.Level += 1
+            self.spawnEnemyOnFrame = frameCount + 60
             if self.ground.set_groundGrid(self.Level):
                 self.player.pos = pygame.math.Vector2(self.player.pos.x, -self.player.playerWidHei.y / 2)
             else:
@@ -330,13 +346,14 @@ class GameController:
                 self.Level += 1
 
 
+
     def mainLoop(self):
         global frameCount
 
         self.ground.createSprites()
         self.player.createSprites()
 
-        self.spawnEnemies()
+        self.spawnEnemy()
 
         while self.running:
             self.eventLoop()
@@ -344,10 +361,13 @@ class GameController:
             self.player.playerInput(self.keys)
             self.checkLevel()
 
+            if (self.spawnEnemyOnFrame != 0):
+                if (frameCount == self.spawnEnemyOnFrame):
+                    self.spawnEnemy()
+
             self.ground.drawGround(self.screen)
             
             toBeDeleted = []
-
             for i in range(len(self.skeletonMeleeEnemies)):
                 if (self.skeletonMeleeEnemies[i].currentHealth <= 0):
                    toBeDeleted.append(i)
@@ -359,26 +379,30 @@ class GameController:
                     self.player.currentHealth -= self.skeletonMeleeEnemies[i].attackDamage
 
             for i in toBeDeleted:
-                del self.skeletonMeleeEnemieds[i]
+                del self.skeletonMeleeEnemies[i]
+                if (self.spawnedEnemies < self.levelsSpawnDetails[self.Level]):
+                    self.spawnEnemy()
+                
 
-
-            # if (len(self.skeletonMeleeEnemies)):
-            #     self.running = False
+            toBeDeleted = []
+            if (frameCount % 210 == 0 and self.player.currentHealth != self.player.maxHealth):
+                self.player.currentHealth += 3
+            if (self.player.currentHealth <= 0):
+                self.running = False
 
             self.player.drawPlayer(self.screen)
 
             if (self.player.dealDamage):
-                dx = float(self.skeletonMeleeEnemies[i].pos.x - self.player.pos.x)
-                dy = float(self.skeletonMeleeEnemies[i].pos.y - self.player.pos.y)
-                rads = atan2(-dy, dx)
-                rads %= 2*pi
-                deg = degrees(rads)
-
                 for i in range(len(self.skeletonMeleeEnemies)):
-                    print(deg, self.player.attackRange[self.player.facingAttack])
-                    if (self.player.pos.distance_to(self.skeletonMeleeEnemies[i].pos) < self.player.attackingDistance and 
-                        (self.player.attackRange[self.player.facingAttack][0] <= deg <= self.player.attackRange[self.player.facingAttack][1])):
-                        self.skeletonMeleeEnemies[i].currentHealth -= self.player.attackDamage
+                   if (self.player.pos.distance_to(self.skeletonMeleeEnemies[i].pos) < self.player.attackingDistance):
+                        dx = float(self.skeletonMeleeEnemies[i].pos.x - self.player.pos.x)
+                        dy = float(self.skeletonMeleeEnemies[i].pos.y - self.player.pos.y)
+                        rads = atan2(-dy, dx)
+                        rads %= 2*pi
+                        deg = degrees(rads)
+                        if (self.player.attackRange[self.player.facingAttack][0] <= deg <= self.player.attackRange[self.player.facingAttack][1] or 
+                            (deg >= self.player.attackRange[self.player.facingAttack][1] or deg <= self.player.attackRange[self.player.facingAttack][0])):
+                            self.skeletonMeleeEnemies[i].currentHealth -= self.player.attackDamage
 
             pygame.display.update()
             self.clock.tick(GAME_FPS)
