@@ -250,7 +250,7 @@ class Ground:
                       'water': 'Water Texture.png'}
         self.path = "Textures/"
         self.size = 32
-        self.groundGrid = levels.getLevel(o)
+        self.groundGrid = levels.getLevel(0)
 
     def createSprites(self):
         for tile in self.tiles.keys():
