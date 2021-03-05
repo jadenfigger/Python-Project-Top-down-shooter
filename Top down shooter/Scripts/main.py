@@ -8,6 +8,7 @@ from math import floor, atan2, pi, degrees
 
 WIDTH, HEIGHT = SCREEN_SIZE = (1024, 640)
 GAME_FPS = 60
+LEVEL = 0
 frameCount = 0
 
 # os.chdir('..')
@@ -152,11 +153,11 @@ class Player:
                                             int(self.pos.y + self.swordTranslations[self.facingAttack][1]),
                                             self.playerWidHei.x, self.playerWidHei.y))
 
-        sHeathBarBack = pygame.Surface((int(self.playerWidHei.x), 10))
+        sHeathBarBack = pygame.Surface((int(self.playerWidHei.x), 8))
         sHeathBarBack.set_alpha(100)
         sHeathBarBack.fill((0, 0, 0))
-        surface.blit(sHeathBarBack, (self.pos.x, self.pos.y - 10))
-        pygame.draw.rect(surface, (255, 0, 0), (self.pos.x, self.pos.y-10, int((48 * self.currentHealth/self.maxHealth)), 10))
+        surface.blit(sHeathBarBack, (self.pos.x, self.pos.y - 8))
+        pygame.draw.rect(surface, (255, 0, 0), (self.pos.x, self.pos.y-8, int((48 * self.currentHealth/self.maxHealth)), 8))
 
     def playerInput(self, keys):
         x = 0
@@ -252,7 +253,7 @@ class Ground:
                       'water': 'Water Texture.png'}
         self.path = "Textures/"
         self.size = 32
-        self.groundGrid = levels.getLevel(0)
+        self.groundGrid = levels.getLevel(LEVEL)
 
     def createSprites(self):
         for tile in self.tiles.keys():
@@ -302,7 +303,7 @@ class GameController:
 
         self.Level = 0
 
-        self.levelsSpawnDetails = [3, 5]
+        self.levelsSpawnDetails = [3, 4, 5]
         self.spawnedEnemies = 0
         self.spawnEnemyOnFrame = None
 
@@ -332,6 +333,7 @@ class GameController:
 
         if self.player.pos.y >= HEIGHT:
             self.Level += 1
+            self.spawnedEnemies = 0
             self.spawnEnemyOnFrame = frameCount + 60
             if self.ground.set_groundGrid(self.Level):
                 self.player.pos = pygame.math.Vector2(self.player.pos.x, -self.player.playerWidHei.y / 2)
@@ -343,6 +345,7 @@ class GameController:
                 self.player.pos = pygame.math.Vector2(self.player.pos.x, HEIGHT - self.player.playerWidHei.y / 2)
             else:
                 self.Level += 1
+                self.spawnedEnemies = 0
 
 
 

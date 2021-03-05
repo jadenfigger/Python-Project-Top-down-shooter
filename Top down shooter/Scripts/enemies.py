@@ -199,8 +199,8 @@ class MeleeSkeletonEnemy(Enemy):
 				self.currentAttackSprite.get_rect().x, self.currentAttackSprite.get_rect().y))
 		
 
-		sHeathBarBack = pygame.Surface((int(self.enemyWidHei[0]), 10))
+		sHeathBarBack = pygame.Surface((int(self.enemyWidHei[0]), 8))
 		sHeathBarBack.set_alpha(100)
 		sHeathBarBack.fill((0, 0, 0))
-		surface.blit(sHeathBarBack, (self.pos.x, self.pos.y - 10))
-		pygame.draw.rect(surface, (255, 0, 0), (self.pos.x, self.pos.y-10, int((48 * self.currentHealth/self.maxHealth)), 10))
+		surface.blit(sHeathBarBack, (self.pos.x, self.pos.y - 8))
+		pygame.draw.rect(surface, (255, 0, 0), (self.pos.x, self.pos.y-8, int((48 * self.currentHealth/self.maxHealth)), 8))
