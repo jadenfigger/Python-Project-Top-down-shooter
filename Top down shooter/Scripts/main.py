@@ -8,12 +8,9 @@ from math import floor, atan2, pi, degrees
 
 WIDTH, HEIGHT = SCREEN_SIZE = (1024, 640)
 GAME_FPS = 60
-LEVEL = 0
 frameCount = 0
 
-# os.chdir('..')
-
-# print(os.getcwd())
+os.chdir('..')
 
 class Player:
     def __init__(self):
@@ -253,7 +250,7 @@ class Ground:
                       'water': 'Water Texture.png'}
         self.path = "Textures/"
         self.size = 32
-        self.groundGrid = levels.getLevel(LEVEL)
+        self.groundGrid = levels.getLevel(o)
 
     def createSprites(self):
         for tile in self.tiles.keys():
