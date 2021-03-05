@@ -245,7 +245,7 @@ class Player:
 
 class Ground:
     def __init__(self):
-        self.tiles = {'dirt': 'Dirt Texture.jpg', 'grass': 'Grass Texture.png', 'road': 'Road Texture.png',
+        self.tiles = {'dirt': 'Dirt Texture.jpg', 'grass': 'Grass Texture.png', 'road': 'Road Texture.jpg',
                       'sand': 'Sand Texture.jpg', 'soil': 'Soil Texture.jpg', 'stone': 'Stone Texture.jpg',
                       'water': 'Water Texture.png'}
         self.path = "Textures/"
